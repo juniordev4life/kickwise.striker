@@ -13,30 +13,19 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   GCP_PROJECT: kickwise-prod
   GCP_REGION: europe-west3
-  BUCKET: kickwise-euw3-bucket-striker
+  ARTIFACT_REGISTRY: europe-west3-docker.pkg.dev/kickwise-prod/kickwise
+  IMAGE_NAME: striker
+  SERVICE_NAME: kickwise-euw3-run-striker
   WIF_PROVIDER: projects/264607219534/locations/global/workloadIdentityPools/kickwise-euw3-pool-github/providers/kickwise-euw3-prov-github
   DEPLOY_SA: kickwise-euw3-sa-gha-deploy@kickwise-prod.iam.gserviceaccount.com
   PLAYMAKER_URL: https://kickwise-euw3-run-playmaker-2zf6f7v3pq-ey.a.run.app
 
 jobs:
   warmup-and-deploy:
-    name: Warmup, Build & Match Day
+    name: Warmup, Push & Match Day
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: "24"
-          cache: npm
-
-      - run: npm ci
-
-      - name: Build (with VITE_API_URL pointing at Playmaker)
-        run: |
-          export VITE_API_URL="${PLAYMAKER_URL}"
-          export BASE_PATH="/${BUCKET}"
-          npm run build
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
@@ -47,22 +36,41 @@ jobs:
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v3
 
-      - name: Sync build/ to GCS bucket
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Compute image tag
+        id: tag
         run: |
-          gcloud storage rsync build/ "gs://${BUCKET}/" \
-            --recursive \
-            --delete-unmatched-destination-objects \
-            --cache-control="no-cache, max-age=0" \
+          SHORT_SHA="${GITHUB_SHA::7}"
+          echo "fqin=${ARTIFACT_REGISTRY}/${IMAGE_NAME}:${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "fqin_latest=${ARTIFACT_REGISTRY}/${IMAGE_NAME}:latest" >> "$GITHUB_OUTPUT"
+
+      - name: Build container image
+        run: |
+          docker build \
+            --build-arg "VITE_API_URL=${PLAYMAKER_URL}" \
+            -t "${{ steps.tag.outputs.fqin }}" \
+            -t "${{ steps.tag.outputs.fqin_latest }}" \
+            .
+
+      - name: Push container image
+        run: |
+          docker push "${{ steps.tag.outputs.fqin }}"
+          docker push "${{ steps.tag.outputs.fqin_latest }}"
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy "${SERVICE_NAME}" \
+            --project="${GCP_PROJECT}" \
+            --region="${GCP_REGION}" \
+            --image="${{ steps.tag.outputs.fqin }}" \
             --quiet
 
-      - name: Set long cache for hashed assets
+      - name: Show service URL
         run: |
-          # SvelteKit emits hashed filenames under _app/immutable/ — those can
-          # be cached aggressively. Everything else stays no-cache.
-          gcloud storage objects update "gs://${BUCKET}/_app/immutable/**" \
-            --cache-control="public, max-age=31536000, immutable" \
-            --quiet || true
-
-      - name: Show public URL
-        run: |
-          echo "Striker is live at: https://storage.googleapis.com/${BUCKET}/index.html"
+          URL=$(gcloud run services describe "${SERVICE_NAME}" \
+            --project="${GCP_PROJECT}" \
+            --region="${GCP_REGION}" \
+            --format='value(status.url)')
+          echo "Striker is live at: ${URL}"

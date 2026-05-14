@@ -1,0 +1,12 @@
+node_modules
+build
+.svelte-kit
+.git
+.github
+.env*
+*.md
+tests
+coverage
+.vscode
+.idea
+.DS_Store
