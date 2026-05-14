@@ -2,7 +2,7 @@
 import { goto } from "$app/navigation";
 import Button from "$components/common/Button.svelte";
 import Input from "$components/common/Input.svelte";
-import { authStore } from "$stores/auth.stores.js";
+import { authStore } from "$stores/auth.stores.svelte.js";
 
 let email = $state("");
 let password = $state("");

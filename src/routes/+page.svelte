@@ -1,6 +1,6 @@
 <script>
 import { goto } from "$app/navigation";
-import { authStore } from "$stores/auth.stores.js";
+import { authStore } from "$stores/auth.stores.svelte.js";
 
 $effect(() => {
   if (authStore.isLoading) return;

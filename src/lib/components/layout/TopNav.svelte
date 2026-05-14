@@ -1,7 +1,7 @@
 <script>
 import { goto } from "$app/navigation";
 import { page } from "$app/state";
-import { authStore } from "$stores/auth.stores.js";
+import { authStore } from "$stores/auth.stores.svelte.js";
 
 const navItems = [
   { href: "/matchday", label: "Spieltag" },
