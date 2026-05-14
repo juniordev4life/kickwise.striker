@@ -35,6 +35,7 @@ jobs:
       - name: Build (with VITE_API_URL pointing at Playmaker)
         run: |
           export VITE_API_URL="${PLAYMAKER_URL}"
+          export BASE_PATH="/${BUCKET}"
           npm run build
 
       - name: Authenticate to Google Cloud
