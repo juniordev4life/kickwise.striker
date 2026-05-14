@@ -11,6 +11,14 @@ export default {
       fallback: "index.html",
       strict: false
     }),
+    // Hash routing keeps every navigation in the browser's URL fragment
+    // (e.g. /index.html#/login). Cloud Storage only ever needs to serve a
+    // single object (index.html); deep links and reloads work without a
+    // server-side SPA fallback. When we put a custom domain in front, we
+    // can drop this and switch to standard pathname routing.
+    router: {
+      type: "hash"
+    },
     paths: {
       base: basePath,
       relative: false
