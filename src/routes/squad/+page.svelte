@@ -65,9 +65,9 @@ const displayTotalExpected = $derived.by(() => {
   return sum + (cap?.expectedPoints ?? 0); // captain doubles
 });
 
-const totalBudgetEur = $derived(
-  pool === "budget" ? Math.round(budgetInputM * 1_000_000) : null
-);
+// Budget is always active — in budget mode it caps the auto-XI, in squad
+// mode it constrains manual swaps (the user's Kickbase cash on hand).
+const totalBudgetEur = $derived(Math.round(budgetInputM * 1_000_000));
 
 const eurFormatter = new Intl.NumberFormat("de-DE", {
   style: "currency",
@@ -107,8 +107,14 @@ $effect(() => {
   }
 });
 
+// Auto-load on pool / league change ONLY if we don't already have a manual
+// lineup. Once the user has edited or copied a lineup over, we leave it
+// alone — they re-trigger explicit recompute via the "Aufstellung berechnen"
+// button.
 $effect(() => {
-  if (pool === "squad" && selectedLeagueId) {
+  if (!selectedLeagueId) return;
+  if (manualLineup) return;
+  if (pool === "squad") {
     void loadOptimizedFromSquad(selectedLeagueId, formation, riskProfile);
   }
 });
@@ -161,7 +167,7 @@ async function loadOptimizedFromBudget() {
 function openPicker(player, position) {
   if (!displayLineup.length) return;
   let maxBudget = null;
-  if (pool === "budget" && totalBudgetEur) {
+  if (totalBudgetEur) {
     // Budget left over if we sell this player: total - (currentTotal - thisPlayer)
     const otherSpent = displayLineup.reduce(
       (s, p) => s + (p.playerId === player?.playerId ? 0 : Number(p.marketValue) || 0),
@@ -172,6 +178,19 @@ function openPicker(player, position) {
   pickerSlot = { player, position };
   pickerMaxBudget = maxBudget;
   pickerOpen = true;
+}
+
+/**
+ * Copies the current displayed lineup over to "Mein Kader" pool. Used
+ * when the user generated an ideal XI under Bundesliga+Budget and wants
+ * to refine it (and eventually submit) in squad mode.
+ */
+function adoptAsMyKader() {
+  if (!displayLineup.length) return;
+  const snapshot = displayLineup.map((p) => ({ ...p }));
+  pool = "squad";
+  manualLineup = snapshot;
+  submitStatus = null;
 }
 
 function applySwap(replacement) {
@@ -302,34 +321,54 @@ const excludePickerIds = $derived(displayLineup.map((p) => String(p.playerId)));
     </p>
   {:else if view === "pitch"}
     <section class="flex flex-col gap-3">
-      {#if pool === "budget"}
-        <div class="flex flex-wrap items-end gap-2 rounded-md border border-slate-200 bg-white p-3">
-          <label class="flex flex-col text-xs text-slate-500">
-            Budget (Mio. €)
-            <input
-              type="number"
-              min="10"
-              max="1000"
-              step="5"
-              class="mt-1 w-32 rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm font-mono"
-              bind:value={budgetInputM}
-            />
-          </label>
+      <div class="flex flex-wrap items-end gap-2 rounded-md border border-slate-200 bg-white p-3">
+        <label class="flex flex-col text-xs text-slate-500">
+          Budget (Mio. €)
+          <input
+            type="number"
+            min="10"
+            max="1000"
+            step="5"
+            class="mt-1 w-32 rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm font-mono"
+            bind:value={budgetInputM}
+          />
+        </label>
+        {#if pool === "budget"}
           <button
             class="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
             disabled={optimizing}
             onclick={loadOptimizedFromBudget}
           >
-            Aufstellung berechnen
+            {optimizing ? "Berechne …" : "Aufstellung berechnen"}
           </button>
-          {#if optimized && optimized.budget}
-            <p class="ml-2 text-xs text-slate-500">
-              Verbraucht: <span class="font-mono">{eurFormatter.format(optimized.totalMarketValue ?? 0)}</span>
-              · Rest: <span class="font-mono">{eurFormatter.format(optimized.budgetRemaining ?? 0)}</span>
-            </p>
+          {#if displayLineup.length === 11}
+            <button
+              type="button"
+              class="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700"
+              onclick={adoptAsMyKader}
+            >
+              Als Vorschlag übernehmen
+            </button>
           {/if}
-        </div>
-      {/if}
+        {:else}
+          <button
+            class="rounded-md bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-200 disabled:opacity-50"
+            disabled={optimizing || !selectedLeagueId}
+            onclick={() => {
+              manualLineup = null;
+              loadOptimizedFromSquad(selectedLeagueId, formation, riskProfile);
+            }}
+          >
+            {optimizing ? "Berechne …" : "Neu berechnen"}
+          </button>
+        {/if}
+        <p class="ml-auto text-xs text-slate-500">
+          Verbraucht: <span class="font-mono">{eurFormatter.format(displayTotalMarketValue)}</span>
+          <span class="ml-1 {totalBudgetEur - displayTotalMarketValue < 0 ? 'text-red-600' : 'text-slate-500'}">
+            · {eurFormatter.format(totalBudgetEur - displayTotalMarketValue)} übrig
+          </span>
+        </p>
+      </div>
 
       {#if optimizing}
         <p class="text-center text-xs text-slate-500">Berechne empfohlene Aufstellung …</p>
@@ -385,18 +424,6 @@ const excludePickerIds = $derived(displayLineup.map((p) => String(p.playerId)));
             <div class="truncate font-semibold text-slate-900">{displayCaptain?.name ?? "—"}</div>
           </div>
         </div>
-
-        {#if pool === "budget" && totalBudgetEur}
-          <div class="flex items-center justify-between rounded-md border border-slate-200 bg-white p-2 text-xs">
-            <span class="text-slate-500">Verbraucht:</span>
-            <span class="font-mono tabular-nums text-slate-900">
-              {eurFormatter.format(displayTotalMarketValue)} / {eurFormatter.format(totalBudgetEur)}
-              <span class="ml-2 {totalBudgetEur - displayTotalMarketValue < 0 ? 'text-red-600' : 'text-slate-500'}">
-                · {eurFormatter.format(totalBudgetEur - displayTotalMarketValue)} übrig
-              </span>
-            </span>
-          </div>
-        {/if}
 
         {#if pool === "squad" && selectedLeagueId && displayLineup.length === 11}
           <div class="flex flex-col gap-2 rounded-md border border-slate-200 bg-white p-3">
