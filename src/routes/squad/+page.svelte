@@ -8,6 +8,11 @@ import { getMyLeagues } from "$services/league.services.js";
 import { getBudgetLineup, getMySquad, getOptimizedLineup } from "$services/squad.services.js";
 
 const FORMATIONS = ["auto", "3-4-3", "3-5-2", "4-3-3", "4-4-2", "4-5-1", "5-3-2", "5-4-1"];
+const RISK_PROFILES = [
+  { key: "conservative", label: "Konservativ", description: "Nur Stammspieler aus klaren Favoriten" },
+  { key: "balanced", label: "Normal", description: "Standard — maximal erwartete Punkte" },
+  { key: "bold", label: "Mutig", description: "Rotationsspieler erlaubt, Captain mit Ceiling" }
+];
 
 let leagues = $state([]);
 let selectedLeagueId = $state(null);
@@ -15,6 +20,7 @@ let squad = $state(null);
 let optimized = $state(null);
 let formation = $state("auto");
 let pool = $state("squad"); // "squad" | "budget"
+let riskProfile = $state("balanced");
 let budgetInputM = $state(150); // millions
 let view = $state("pitch"); // "pitch" | "list"
 let loading = $state(true);
@@ -61,7 +67,7 @@ $effect(() => {
 
 $effect(() => {
   if (pool === "squad" && selectedLeagueId) {
-    void loadOptimizedFromSquad(selectedLeagueId, formation);
+    void loadOptimizedFromSquad(selectedLeagueId, formation, riskProfile);
   }
 });
 
@@ -77,10 +83,13 @@ async function loadSquad(leagueId) {
   }
 }
 
-async function loadOptimizedFromSquad(leagueId, formationKey) {
+async function loadOptimizedFromSquad(leagueId, formationKey, riskProfileKey) {
   optimizing = true;
   try {
-    optimized = await getOptimizedLineup(leagueId, { formation: formationKey });
+    optimized = await getOptimizedLineup(leagueId, {
+      formation: formationKey,
+      riskProfile: riskProfileKey
+    });
   } catch (err) {
     optimized = null;
     console.warn("Lineup optimizer failed:", err);
@@ -94,7 +103,8 @@ async function loadOptimizedFromBudget() {
   try {
     optimized = await getBudgetLineup({
       budget: Math.round(budgetInputM * 1_000_000),
-      formation
+      formation,
+      riskProfile
     });
   } catch (err) {
     optimized = null;
@@ -132,6 +142,18 @@ async function loadOptimizedFromBudget() {
         >
           <option value="squad">Mein Kader</option>
           <option value="budget">Bundesliga + Budget</option>
+        </select>
+      </label>
+
+      <label class="flex items-center gap-1 text-slate-500">
+        Strategie
+        <select
+          class="rounded-md border border-slate-300 bg-white px-2 py-1.5"
+          bind:value={riskProfile}
+        >
+          {#each RISK_PROFILES as r (r.key)}
+            <option value={r.key}>{r.label}</option>
+          {/each}
         </select>
       </label>
 

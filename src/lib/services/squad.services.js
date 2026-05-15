@@ -30,6 +30,7 @@ export function getOptimizedLineup(leagueId, opts = {}) {
   if (opts.formation) params.set("formation", opts.formation);
   if (opts.matchday) params.set("matchday", String(opts.matchday));
   if (opts.seasonId) params.set("seasonId", opts.seasonId);
+  if (opts.riskProfile) params.set("riskProfile", opts.riskProfile);
   const qs = params.toString();
   const path = `/api/v1/squad/${encodeURIComponent(leagueId)}/lineup${qs ? `?${qs}` : ""}`;
   return apiFetch(path);
@@ -68,5 +69,6 @@ export function getBudgetLineup(opts) {
   if (opts.formation) params.set("formation", opts.formation);
   if (opts.matchday) params.set("matchday", String(opts.matchday));
   if (opts.seasonId) params.set("seasonId", opts.seasonId);
+  if (opts.riskProfile) params.set("riskProfile", opts.riskProfile);
   return apiFetch(`/api/v1/lineup/budget?${params.toString()}`);
 }
