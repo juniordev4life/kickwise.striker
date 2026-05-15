@@ -85,6 +85,22 @@ export function getBudgetLineup(opts) {
  * @param {number} [opts.matchday]
  * @param {number} [opts.limit]
  */
+/**
+ * Push a lineup to Kickbase via Playmaker.
+ *
+ * @param {string} leagueId
+ * @param {object} payload
+ * @param {string} payload.formation
+ * @param {Array<{playerId: string, position: string}>} payload.players
+ * @returns {Promise<object>}
+ */
+export function submitLineup(leagueId, payload) {
+  return apiFetch(`/api/v1/squad/${encodeURIComponent(leagueId)}/lineup`, {
+    method: "POST",
+    body: payload
+  });
+}
+
 export function getAlternatives(opts) {
   const params = new URLSearchParams();
   params.set("position", opts.position);

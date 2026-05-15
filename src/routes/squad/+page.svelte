@@ -6,7 +6,12 @@ import PitchView from "$components/squad/PitchView.svelte";
 import PlayerCard from "$components/squad/PlayerCard.svelte";
 import PlayerPickerModal from "$components/squad/PlayerPickerModal.svelte";
 import { getMyLeagues } from "$services/league.services.js";
-import { getBudgetLineup, getMySquad, getOptimizedLineup } from "$services/squad.services.js";
+import {
+  getBudgetLineup,
+  getMySquad,
+  getOptimizedLineup,
+  submitLineup
+} from "$services/squad.services.js";
 
 const FORMATIONS = ["auto", "3-4-3", "3-5-2", "4-3-3", "4-4-2", "4-5-1", "5-3-2", "5-4-1"];
 const RISK_PROFILES = [
@@ -32,6 +37,9 @@ let error = $state(null);
 let pickerOpen = $state(false);
 let pickerSlot = $state(null); // { player, position }
 let pickerMaxBudget = $state(null);
+
+let submitting = $state(false);
+let submitStatus = $state(null); // { kind: "success" | "error", message: string } | null
 
 // What's actually rendered on the pitch — user edits take priority.
 const displayLineup = $derived(manualLineup ?? optimized?.lineup ?? []);
@@ -181,6 +189,33 @@ function applySwap(replacement) {
 
 function resetManualEdits() {
   manualLineup = null;
+}
+
+async function pushLineupToKickbase() {
+  if (!selectedLeagueId || !displayLineup.length || !optimized?.formation) return;
+  submitting = true;
+  submitStatus = null;
+  try {
+    const payload = {
+      formation: optimized.formation,
+      players: displayLineup.map((p) => ({
+        playerId: String(p.playerId),
+        position: p.position
+      }))
+    };
+    await submitLineup(selectedLeagueId, payload);
+    submitStatus = {
+      kind: "success",
+      message: "Aufstellung in Kickbase übernommen."
+    };
+  } catch (err) {
+    submitStatus = {
+      kind: "error",
+      message: err?.message ?? "Konnte Aufstellung nicht senden."
+    };
+  } finally {
+    submitting = false;
+  }
 }
 
 const excludePickerIds = $derived(displayLineup.map((p) => String(p.playerId)));
@@ -360,6 +395,30 @@ const excludePickerIds = $derived(displayLineup.map((p) => String(p.playerId)));
                 · {eurFormatter.format(totalBudgetEur - displayTotalMarketValue)} übrig
               </span>
             </span>
+          </div>
+        {/if}
+
+        {#if pool === "squad" && selectedLeagueId && displayLineup.length === 11}
+          <div class="flex flex-col gap-2 rounded-md border border-slate-200 bg-white p-3">
+            <button
+              type="button"
+              class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-50"
+              disabled={submitting}
+              onclick={pushLineupToKickbase}
+            >
+              {submitting ? "Sende an Kickbase …" : "In Kickbase übernehmen"}
+            </button>
+            {#if submitStatus}
+              <p
+                class="text-xs {submitStatus.kind === 'success' ? 'text-emerald-700' : 'text-red-600'}"
+              >
+                {submitStatus.message}
+              </p>
+            {/if}
+            <p class="text-[10px] text-slate-400">
+              Schreibt die XI direkt in deine Kickbase-Liga. Captain musst du in Kickbase
+              manuell setzen — die API liefert dafür keinen Endpoint.
+            </p>
           </div>
         {/if}
 
