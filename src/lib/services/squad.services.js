@@ -34,3 +34,20 @@ export function getOptimizedLineup(leagueId, opts = {}) {
   const path = `/api/v1/squad/${encodeURIComponent(leagueId)}/lineup${qs ? `?${qs}` : ""}`;
   return apiFetch(path);
 }
+
+/**
+ * Fetch top captain candidates from the user's squad for a given matchday.
+ *
+ * @param {string} leagueId
+ * @param {object} [opts]
+ * @param {number} [opts.matchday]
+ * @returns {Promise<{ seasonId: string, matchday: number, candidates: object[] }>}
+ */
+export function getCaptainCandidates(leagueId, opts = {}) {
+  const params = new URLSearchParams();
+  if (opts.matchday) params.set("matchday", String(opts.matchday));
+  if (opts.seasonId) params.set("seasonId", opts.seasonId);
+  const qs = params.toString();
+  const path = `/api/v1/squad/${encodeURIComponent(leagueId)}/captain-candidates${qs ? `?${qs}` : ""}`;
+  return apiFetch(path);
+}

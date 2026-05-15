@@ -7,13 +7,13 @@ import PlayerCard from "$components/squad/PlayerCard.svelte";
 import { getMyLeagues } from "$services/league.services.js";
 import { getMySquad, getOptimizedLineup } from "$services/squad.services.js";
 
-const FORMATIONS = ["3-4-3", "3-5-2", "4-3-3", "4-4-2", "4-5-1", "5-3-2", "5-4-1"];
+const FORMATIONS = ["auto", "3-4-3", "3-5-2", "4-3-3", "4-4-2", "4-5-1", "5-3-2", "5-4-1"];
 
 let leagues = $state([]);
 let selectedLeagueId = $state(null);
 let squad = $state(null);
 let optimized = $state(null);
-let formation = $state("4-4-2");
+let formation = $state("auto");
 let view = $state("pitch"); // "pitch" | "list"
 let loading = $state(true);
 let optimizing = $state(false);
@@ -104,7 +104,7 @@ async function loadOptimized(leagueId, formationKey) {
           bind:value={formation}
         >
           {#each FORMATIONS as f (f)}
-            <option value={f}>{f}</option>
+            <option value={f}>{f === "auto" ? "Auto (beste)" : f}</option>
           {/each}
         </select>
       </label>
@@ -147,18 +147,33 @@ async function loadOptimized(leagueId, formationKey) {
           formation={optimized.formation}
         />
 
-        <div class="grid grid-cols-3 gap-2 text-center text-xs">
+        {#if optimized.warnings?.length}
+          <div class="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800">
+            <div class="mb-1 font-semibold">⚠️ Status-Warnung</div>
+            <ul class="flex flex-col gap-0.5">
+              {#each optimized.warnings as w (w.playerId)}
+                <li>{w.name} – {w.status}</li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
+
+        <div class="grid grid-cols-4 gap-2 text-center text-xs">
           <div class="rounded-md border border-slate-200 bg-white p-2">
             <div class="text-slate-500">Spieltag</div>
             <div class="font-semibold text-slate-900">{optimized.matchday}</div>
           </div>
           <div class="rounded-md border border-slate-200 bg-white p-2">
-            <div class="text-slate-500">Σ erwartete Punkte</div>
+            <div class="text-slate-500">Formation</div>
+            <div class="font-semibold text-slate-900">{optimized.formation}</div>
+          </div>
+          <div class="rounded-md border border-slate-200 bg-white p-2">
+            <div class="text-slate-500">Σ erwartet</div>
             <div class="font-semibold text-slate-900">{Math.round(optimized.totalExpectedPoints)}</div>
           </div>
           <div class="rounded-md border border-slate-200 bg-white p-2">
             <div class="text-slate-500">Captain</div>
-            <div class="font-semibold text-slate-900">{optimized.captain?.name ?? "—"}</div>
+            <div class="truncate font-semibold text-slate-900">{optimized.captain?.name ?? "—"}</div>
           </div>
         </div>
 
