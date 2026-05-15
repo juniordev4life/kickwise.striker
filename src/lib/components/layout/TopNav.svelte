@@ -6,7 +6,8 @@ import { authStore } from "$stores/auth.stores.svelte.js";
 const navItems = [
   { href: "/matchday", label: "Spieltag" },
   { href: "/league", label: "Liga" },
-  { href: "/squad", label: "Kader" }
+  { href: "/squad", label: "Kader" },
+  { href: "/players", label: "Spieler" }
 ];
 
 async function handleLogout() {
