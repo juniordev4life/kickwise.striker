@@ -3,6 +3,7 @@
   import { getMatchById } from "$services/matches.services.js";
   import TeamLogo from "$components/common/TeamLogo.svelte";
   import GoalTimeline from "$components/match/GoalTimeline.svelte";
+  import MatchStats from "$components/match/MatchStats.svelte";
   import Spinner from "$components/common/Spinner.svelte";
   import ErrorState from "$components/common/ErrorState.svelte";
   import { formatKickoffLong } from "$utils/date.utils.js";
@@ -109,13 +110,18 @@
       </section>
     {/if}
 
+    <!-- Team stats (xG, shots, deep passes, PPDA) -->
+    <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 class="mb-3 text-base font-semibold text-slate-900">Team-Statistiken</h2>
+      <MatchStats homeStats={match.homeStats} awayStats={match.awayStats} />
+    </section>
+
     <!-- Placeholder for future stages -->
     <section class="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-500">
       <h2 class="mb-1 font-semibold text-slate-700">Mehr Statistiken kommen</h2>
       <p>
-        xG, Schussstatistiken, Ballbesitz und Passquote werden später aus Understat + FBref
-        eingespeist. Aufstellungen + Karten gibt es noch nicht in den Free-Quellen, kommen mit den
-        nächsten Stufen.
+        Ballbesitz, Passquote und Aufstellungen folgen in einer weiteren Stufe aus FBref bzw.
+        Kickbase.
       </p>
     </section>
   {/if}
