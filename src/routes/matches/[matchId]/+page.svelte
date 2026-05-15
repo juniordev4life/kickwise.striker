@@ -4,6 +4,7 @@
   import TeamLogo from "$components/common/TeamLogo.svelte";
   import GoalTimeline from "$components/match/GoalTimeline.svelte";
   import MatchStats from "$components/match/MatchStats.svelte";
+  import Prediction from "$components/match/Prediction.svelte";
   import Spinner from "$components/common/Spinner.svelte";
   import ErrorState from "$components/common/ErrorState.svelte";
   import { formatKickoffLong } from "$utils/date.utils.js";
@@ -101,6 +102,16 @@
         </div>
       {/if}
     </header>
+
+    <!-- Prediction (Poisson-xG) -->
+    <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 class="mb-3 text-base font-semibold text-slate-900">Prediction</h2>
+      <Prediction
+        prediction={match.prediction}
+        homeName={match.homeTeam.shortName ?? match.homeTeam.name}
+        awayName={match.awayTeam.shortName ?? match.awayTeam.name}
+      />
+    </section>
 
     <!-- Goal timeline -->
     {#if match.isFinished || match.goals?.length > 0}
