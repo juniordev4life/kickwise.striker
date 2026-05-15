@@ -7,7 +7,10 @@ let { match } = $props();
 const isFinished = $derived(match.status === "finished");
 </script>
 
-<article class="flex items-stretch overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+<a
+  href="/matches/{match.match_id}"
+  class="flex items-stretch overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-[var(--color-pitch)] hover:shadow-md"
+>
   <div class="flex w-12 shrink-0 flex-col items-center justify-center bg-slate-50 text-xs font-medium text-slate-500">
     {formatKickoffShort(match.kickoff_at)}
   </div>
@@ -35,4 +38,4 @@ const isFinished = $derived(match.status === "finished");
       <TeamLogo src={match.away_logo_url} alt={match.away_team_short ?? match.away_team_name} />
     </div>
   </div>
-</article>
+</a>
