@@ -51,3 +51,22 @@ export function getCaptainCandidates(leagueId, opts = {}) {
   const path = `/api/v1/squad/${encodeURIComponent(leagueId)}/captain-candidates${qs ? `?${qs}` : ""}`;
   return apiFetch(path);
 }
+
+/**
+ * Compose the best XI from all Bundesliga players within a budget cap.
+ *
+ * @param {object} opts
+ * @param {number} opts.budget total marketValue cap in € (e.g. 150_000_000)
+ * @param {string} [opts.formation] one of FORMATIONS or "auto"
+ * @param {number} [opts.matchday]
+ * @param {string} [opts.seasonId]
+ * @returns {Promise<object>}
+ */
+export function getBudgetLineup(opts) {
+  const params = new URLSearchParams();
+  params.set("budget", String(opts.budget));
+  if (opts.formation) params.set("formation", opts.formation);
+  if (opts.matchday) params.set("matchday", String(opts.matchday));
+  if (opts.seasonId) params.set("seasonId", opts.seasonId);
+  return apiFetch(`/api/v1/lineup/budget?${params.toString()}`);
+}

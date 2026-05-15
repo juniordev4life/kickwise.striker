@@ -5,7 +5,7 @@ import Spinner from "$components/common/Spinner.svelte";
 import PitchView from "$components/squad/PitchView.svelte";
 import PlayerCard from "$components/squad/PlayerCard.svelte";
 import { getMyLeagues } from "$services/league.services.js";
-import { getMySquad, getOptimizedLineup } from "$services/squad.services.js";
+import { getBudgetLineup, getMySquad, getOptimizedLineup } from "$services/squad.services.js";
 
 const FORMATIONS = ["auto", "3-4-3", "3-5-2", "4-3-3", "4-4-2", "4-5-1", "5-3-2", "5-4-1"];
 
@@ -14,10 +14,18 @@ let selectedLeagueId = $state(null);
 let squad = $state(null);
 let optimized = $state(null);
 let formation = $state("auto");
+let pool = $state("squad"); // "squad" | "budget"
+let budgetInputM = $state(150); // millions
 let view = $state("pitch"); // "pitch" | "list"
 let loading = $state(true);
 let optimizing = $state(false);
 let error = $state(null);
+
+const eurFormatter = new Intl.NumberFormat("de-DE", {
+  style: "currency",
+  currency: "EUR",
+  maximumFractionDigits: 0
+});
 
 const grouped = $derived.by(() => {
   if (!squad?.players) return {};
@@ -48,7 +56,12 @@ onMount(async () => {
 $effect(() => {
   if (selectedLeagueId) {
     void loadSquad(selectedLeagueId);
-    void loadOptimized(selectedLeagueId, formation);
+  }
+});
+
+$effect(() => {
+  if (pool === "squad" && selectedLeagueId) {
+    void loadOptimizedFromSquad(selectedLeagueId, formation);
   }
 });
 
@@ -64,14 +77,28 @@ async function loadSquad(leagueId) {
   }
 }
 
-async function loadOptimized(leagueId, formationKey) {
+async function loadOptimizedFromSquad(leagueId, formationKey) {
   optimizing = true;
   try {
     optimized = await getOptimizedLineup(leagueId, { formation: formationKey });
   } catch (err) {
     optimized = null;
-    // Don't block the page on optimizer failure; the list view still works.
     console.warn("Lineup optimizer failed:", err);
+  } finally {
+    optimizing = false;
+  }
+}
+
+async function loadOptimizedFromBudget() {
+  optimizing = true;
+  try {
+    optimized = await getBudgetLineup({
+      budget: Math.round(budgetInputM * 1_000_000),
+      formation
+    });
+  } catch (err) {
+    optimized = null;
+    console.warn("Budget optimizer failed:", err);
   } finally {
     optimizing = false;
   }
@@ -96,6 +123,17 @@ async function loadOptimized(leagueId, formationKey) {
           </select>
         </label>
       {/if}
+
+      <label class="flex items-center gap-1 text-slate-500">
+        Pool
+        <select
+          class="rounded-md border border-slate-300 bg-white px-2 py-1.5"
+          bind:value={pool}
+        >
+          <option value="squad">Mein Kader</option>
+          <option value="budget">Bundesliga + Budget</option>
+        </select>
+      </label>
 
       <label class="flex items-center gap-1 text-slate-500">
         Formation
@@ -136,6 +174,35 @@ async function loadOptimized(leagueId, formationKey) {
     </p>
   {:else if view === "pitch"}
     <section class="flex flex-col gap-3">
+      {#if pool === "budget"}
+        <div class="flex flex-wrap items-end gap-2 rounded-md border border-slate-200 bg-white p-3">
+          <label class="flex flex-col text-xs text-slate-500">
+            Budget (Mio. €)
+            <input
+              type="number"
+              min="10"
+              max="1000"
+              step="5"
+              class="mt-1 w-32 rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm font-mono"
+              bind:value={budgetInputM}
+            />
+          </label>
+          <button
+            class="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+            disabled={optimizing}
+            onclick={loadOptimizedFromBudget}
+          >
+            Aufstellung berechnen
+          </button>
+          {#if optimized && optimized.budget}
+            <p class="ml-2 text-xs text-slate-500">
+              Verbraucht: <span class="font-mono">{eurFormatter.format(optimized.totalMarketValue ?? 0)}</span>
+              · Rest: <span class="font-mono">{eurFormatter.format(optimized.budgetRemaining ?? 0)}</span>
+            </p>
+          {/if}
+        </div>
+      {/if}
+
       {#if optimizing}
         <p class="text-center text-xs text-slate-500">Berechne empfohlene Aufstellung …</p>
       {/if}

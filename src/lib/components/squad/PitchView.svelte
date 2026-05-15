@@ -47,12 +47,7 @@
   }
 </script>
 
-<div class="relative overflow-hidden rounded-2xl bg-gradient-to-b from-emerald-600 via-emerald-700 to-emerald-800 p-4 shadow-lg">
-  <!-- Pitch markings (decorative) -->
-  <div class="pointer-events-none absolute inset-2 rounded-xl border border-white/30"></div>
-  <div class="pointer-events-none absolute left-1/2 top-2 h-[calc(100%-1rem)] w-px -translate-x-1/2 bg-white/20"></div>
-  <div class="pointer-events-none absolute left-1/2 top-1/2 size-24 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/30"></div>
-
+<div class="relative overflow-hidden rounded-2xl bg-emerald-700 p-4 shadow-lg">
   <!-- Pitch rows (attacking top, GK bottom) -->
   <div class="relative flex flex-col gap-5 py-4">
     {#each ["FWD", "MID", "DEF", "GK"] as position (position)}
