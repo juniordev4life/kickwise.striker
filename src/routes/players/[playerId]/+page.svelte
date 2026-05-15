@@ -183,7 +183,7 @@
     <!-- Points history chart -->
     <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <h2 class="mb-3 text-base font-semibold text-slate-900">Punkte pro Spieltag</h2>
-      <PointsHistoryChart {performance} />
+      <PointsHistoryChart {performance} playerTeamId={player.teamId} />
     </section>
 
     <!-- Market value chart -->
