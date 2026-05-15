@@ -69,22 +69,18 @@ const displayTotalExpected = $derived.by(() => {
 // mode it constrains manual swaps (the user's Kickbase cash on hand).
 const totalBudgetEur = $derived(Math.round(budgetInputM * 1_000_000));
 
+// Marco's leagues run Arena-style rules — any Bundesliga player can be
+// fielded each matchday, regardless of who's in the persistent squad. So
+// we don't gate the submit by ownership any more. The badge below the
+// player avatar still marks "nicht in deinem Kader" as info, but doesn't
+// block submission.
 const ownedPlayerIds = $derived.by(() => {
   if (!squad?.players) return null;
   return new Set(squad.players.map((p) => String(p.playerId)));
 });
 
-const missingFromSquad = $derived.by(() => {
-  if (!ownedPlayerIds) return [];
-  return displayLineup.filter((p) => !ownedPlayerIds.has(String(p.playerId)));
-});
-
 const canSubmitToKickbase = $derived(
-  Boolean(
-    selectedLeagueId &&
-      displayLineup.length === 11 &&
-      missingFromSquad.length === 0
-  )
+  Boolean(selectedLeagueId && displayLineup.length === 11)
 );
 
 const eurFormatter = new Intl.NumberFormat("de-DE", {
@@ -445,24 +441,6 @@ const excludePickerIds = $derived(displayLineup.map((p) => String(p.playerId)));
         </div>
 
         {#if pool === "squad" && selectedLeagueId && displayLineup.length === 11}
-          {#if missingFromSquad.length > 0}
-            <div class="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
-              <div class="mb-2 font-semibold">
-                ⚠ {missingFromSquad.length} {missingFromSquad.length === 1 ? "Spieler ist" : "Spieler sind"} nicht in deinem Kader.
-                Du müsstest {missingFromSquad.length === 1 ? "ihn" : "sie"} erst in Kickbase kaufen, bevor die Aufstellung übernommen werden kann.
-              </div>
-              <ul class="flex flex-col gap-0.5 font-medium">
-                {#each missingFromSquad as p (p.playerId)}
-                  <li>
-                    <span class="rounded bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-700">{p.position}</span>
-                    {p.name}
-                    <span class="ml-1 font-mono text-[10px] text-amber-700">{eurFormatter.format(p.marketValue ?? 0)}</span>
-                  </li>
-                {/each}
-              </ul>
-            </div>
-          {/if}
-
           <div class="flex flex-col gap-2 rounded-md border border-slate-200 bg-white p-3">
             <button
               type="button"
@@ -470,11 +448,7 @@ const excludePickerIds = $derived(displayLineup.map((p) => String(p.playerId)));
               disabled={submitting || !canSubmitToKickbase}
               onclick={pushLineupToKickbase}
             >
-              {submitting
-                ? "Sende an Kickbase …"
-                : canSubmitToKickbase
-                  ? "In Kickbase übernehmen"
-                  : "Submit blockiert (siehe Hinweis oben)"}
+              {submitting ? "Sende an Kickbase …" : "In Kickbase übernehmen"}
             </button>
             {#if submitStatus}
               <p
