@@ -4,6 +4,7 @@ import ErrorState from "$components/common/ErrorState.svelte";
 import Spinner from "$components/common/Spinner.svelte";
 import PitchView from "$components/squad/PitchView.svelte";
 import PlayerCard from "$components/squad/PlayerCard.svelte";
+import PlayerPickerModal from "$components/squad/PlayerPickerModal.svelte";
 import { getMyLeagues } from "$services/league.services.js";
 import { getBudgetLineup, getMySquad, getOptimizedLineup } from "$services/squad.services.js";
 
@@ -18,6 +19,7 @@ let leagues = $state([]);
 let selectedLeagueId = $state(null);
 let squad = $state(null);
 let optimized = $state(null);
+let manualLineup = $state(null); // user-edited overrides; null = use optimized.lineup
 let formation = $state("auto");
 let pool = $state("squad"); // "squad" | "budget"
 let riskProfile = $state("balanced");
@@ -26,6 +28,38 @@ let view = $state("pitch"); // "pitch" | "list"
 let loading = $state(true);
 let optimizing = $state(false);
 let error = $state(null);
+
+let pickerOpen = $state(false);
+let pickerSlot = $state(null); // { player, position }
+let pickerMaxBudget = $state(null);
+
+// What's actually rendered on the pitch — user edits take priority.
+const displayLineup = $derived(manualLineup ?? optimized?.lineup ?? []);
+
+const displayCaptain = $derived.by(() => {
+  if (!displayLineup.length) return optimized?.captain ?? null;
+  const top = displayLineup.reduce(
+    (b, p) => ((p.expectedPoints ?? 0) > (b?.expectedPoints ?? -1) ? p : b),
+    null
+  );
+  return top ? { playerId: top.playerId, name: top.name } : null;
+});
+
+const displayTotalMarketValue = $derived(
+  displayLineup.reduce((s, p) => s + (Number(p.marketValue) || 0), 0)
+);
+
+const displayTotalExpected = $derived.by(() => {
+  const sum = displayLineup.reduce((s, p) => s + (p.expectedPoints ?? 0), 0);
+  const cap = displayCaptain
+    ? displayLineup.find((p) => p.playerId === displayCaptain.playerId)
+    : null;
+  return sum + (cap?.expectedPoints ?? 0); // captain doubles
+});
+
+const totalBudgetEur = $derived(
+  pool === "budget" ? Math.round(budgetInputM * 1_000_000) : null
+);
 
 const eurFormatter = new Intl.NumberFormat("de-DE", {
   style: "currency",
@@ -90,6 +124,7 @@ async function loadOptimizedFromSquad(leagueId, formationKey, riskProfileKey) {
       formation: formationKey,
       riskProfile: riskProfileKey
     });
+    manualLineup = null;
   } catch (err) {
     optimized = null;
     console.warn("Lineup optimizer failed:", err);
@@ -106,6 +141,7 @@ async function loadOptimizedFromBudget() {
       formation,
       riskProfile
     });
+    manualLineup = null;
   } catch (err) {
     optimized = null;
     console.warn("Budget optimizer failed:", err);
@@ -113,6 +149,41 @@ async function loadOptimizedFromBudget() {
     optimizing = false;
   }
 }
+
+function openPicker(player, position) {
+  if (!displayLineup.length) return;
+  let maxBudget = null;
+  if (pool === "budget" && totalBudgetEur) {
+    // Budget left over if we sell this player: total - (currentTotal - thisPlayer)
+    const otherSpent = displayLineup.reduce(
+      (s, p) => s + (p.playerId === player?.playerId ? 0 : Number(p.marketValue) || 0),
+      0
+    );
+    maxBudget = totalBudgetEur - otherSpent;
+  }
+  pickerSlot = { player, position };
+  pickerMaxBudget = maxBudget;
+  pickerOpen = true;
+}
+
+function applySwap(replacement) {
+  const next = [...displayLineup];
+  const idx = next.findIndex((p) => p.playerId === pickerSlot?.player?.playerId);
+  if (idx >= 0) {
+    next[idx] = { ...replacement, status: replacement.status ?? "fit" };
+  } else {
+    next.push(replacement);
+  }
+  manualLineup = next;
+  pickerOpen = false;
+  pickerSlot = null;
+}
+
+function resetManualEdits() {
+  manualLineup = null;
+}
+
+const excludePickerIds = $derived(displayLineup.map((p) => String(p.playerId)));
 </script>
 
 <div class="flex flex-col gap-4">
@@ -231,10 +302,24 @@ async function loadOptimizedFromBudget() {
 
       {#if optimized?.lineup?.length}
         <PitchView
-          lineup={optimized.lineup}
-          captain={optimized.captain}
+          lineup={displayLineup}
+          captain={displayCaptain}
           formation={optimized.formation}
+          onpickplayer={openPicker}
         />
+
+        {#if manualLineup}
+          <div class="flex items-center justify-between rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+            <span>Manuell bearbeitet</span>
+            <button
+              type="button"
+              class="rounded-md bg-white px-2 py-1 text-xs font-medium text-blue-900 hover:bg-blue-100"
+              onclick={resetManualEdits}
+            >
+              Auf Empfehlung zurücksetzen
+            </button>
+          </div>
+        {/if}
 
         {#if optimized.warnings?.length}
           <div class="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800">
@@ -247,7 +332,7 @@ async function loadOptimizedFromBudget() {
           </div>
         {/if}
 
-        <div class="grid grid-cols-4 gap-2 text-center text-xs">
+        <div class="grid grid-cols-2 gap-2 text-center text-xs sm:grid-cols-4">
           <div class="rounded-md border border-slate-200 bg-white p-2">
             <div class="text-slate-500">Spieltag</div>
             <div class="font-semibold text-slate-900">{optimized.matchday}</div>
@@ -258,13 +343,25 @@ async function loadOptimizedFromBudget() {
           </div>
           <div class="rounded-md border border-slate-200 bg-white p-2">
             <div class="text-slate-500">Σ erwartet</div>
-            <div class="font-semibold text-slate-900">{Math.round(optimized.totalExpectedPoints)}</div>
+            <div class="font-semibold text-slate-900">{Math.round(displayTotalExpected)}</div>
           </div>
           <div class="rounded-md border border-slate-200 bg-white p-2">
             <div class="text-slate-500">Captain</div>
-            <div class="truncate font-semibold text-slate-900">{optimized.captain?.name ?? "—"}</div>
+            <div class="truncate font-semibold text-slate-900">{displayCaptain?.name ?? "—"}</div>
           </div>
         </div>
+
+        {#if pool === "budget" && totalBudgetEur}
+          <div class="flex items-center justify-between rounded-md border border-slate-200 bg-white p-2 text-xs">
+            <span class="text-slate-500">Verbraucht:</span>
+            <span class="font-mono tabular-nums text-slate-900">
+              {eurFormatter.format(displayTotalMarketValue)} / {eurFormatter.format(totalBudgetEur)}
+              <span class="ml-2 {totalBudgetEur - displayTotalMarketValue < 0 ? 'text-red-600' : 'text-slate-500'}">
+                · {eurFormatter.format(totalBudgetEur - displayTotalMarketValue)} übrig
+              </span>
+            </span>
+          </div>
+        {/if}
 
         {#if optimized.bench?.length}
           <section class="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
@@ -312,3 +409,17 @@ async function loadOptimizedFromBudget() {
     </div>
   {/if}
 </div>
+
+<PlayerPickerModal
+  open={pickerOpen}
+  slot={pickerSlot}
+  maxBudget={pickerMaxBudget}
+  excludePlayerIds={excludePickerIds}
+  {riskProfile}
+  matchday={optimized?.matchday}
+  onpick={applySwap}
+  onclose={() => {
+    pickerOpen = false;
+    pickerSlot = null;
+  }}
+/>

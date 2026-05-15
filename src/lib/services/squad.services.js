@@ -72,3 +72,30 @@ export function getBudgetLineup(opts) {
   if (opts.riskProfile) params.set("riskProfile", opts.riskProfile);
   return apiFetch(`/api/v1/lineup/budget?${params.toString()}`);
 }
+
+/**
+ * Fetch alternative players for a single position, optionally constrained
+ * by a per-player market value cap and a list of excluded players.
+ *
+ * @param {object} opts
+ * @param {string} opts.position GK | DEF | MID | FWD
+ * @param {number} [opts.maxBudget]
+ * @param {string[]} [opts.excludePlayerIds]
+ * @param {string} [opts.riskProfile]
+ * @param {number} [opts.matchday]
+ * @param {number} [opts.limit]
+ */
+export function getAlternatives(opts) {
+  const params = new URLSearchParams();
+  params.set("position", opts.position);
+  if (Number.isFinite(opts.maxBudget)) {
+    params.set("maxBudget", String(Math.floor(opts.maxBudget)));
+  }
+  if (opts.excludePlayerIds?.length) {
+    params.set("excludePlayerIds", opts.excludePlayerIds.join(","));
+  }
+  if (opts.riskProfile) params.set("riskProfile", opts.riskProfile);
+  if (opts.matchday) params.set("matchday", String(opts.matchday));
+  if (opts.limit) params.set("limit", String(opts.limit));
+  return apiFetch(`/api/v1/lineup/alternatives?${params.toString()}`);
+}

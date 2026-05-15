@@ -5,8 +5,13 @@
    *
    * @prop player - optional, the player to render. When null the slot is empty.
    * @prop isCaptain - draws the "C" badge.
+   * @prop onclick - optional click handler, invoked with the player object.
    */
-  let { player, isCaptain = false } = $props();
+  let { player, isCaptain = false, onclick } = $props();
+
+  function handleClick() {
+    onclick?.(player);
+  }
 
   const imgSrc = $derived(
     player?.imageUrl ? `https://kickbase.b-cdn.net/${player.imageUrl}` : null
@@ -32,7 +37,11 @@
 </script>
 
 {#if player}
-  <div class="flex flex-col items-center gap-1">
+  <button
+    type="button"
+    onclick={handleClick}
+    class="flex cursor-pointer flex-col items-center gap-1 border-0 bg-transparent p-0 text-inherit transition hover:scale-105"
+  >
     <div class="relative">
       {#if imgSrc}
         <img
@@ -73,9 +82,13 @@
         </div>
       {/if}
     </div>
-  </div>
+  </button>
 {:else}
-  <div class="flex size-14 items-center justify-center rounded-full border-2 border-dashed border-white/40 bg-white/10">
+  <button
+    type="button"
+    onclick={handleClick}
+    class="flex size-14 cursor-pointer items-center justify-center rounded-full border-2 border-dashed border-white/40 bg-white/10 transition hover:bg-white/20"
+  >
     <span class="text-xl text-white/40">+</span>
-  </div>
+  </button>
 {/if}

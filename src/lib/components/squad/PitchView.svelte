@@ -8,8 +8,14 @@
    * @prop lineup - array of player objects (from /squad/lineup)
    * @prop captain - { playerId, name } or null
    * @prop formation - "4-4-2" etc, used to lay out empty slots if lineup is short
+   * @prop onpickplayer - optional callback (player, position) for click-to-swap
    */
-  let { lineup = [], captain = null, formation = "4-4-2" } = $props();
+  let {
+    lineup = [],
+    captain = null,
+    formation = "4-4-2",
+    onpickplayer
+  } = $props();
 
   const grouped = $derived.by(() => {
     const out = { GK: [], DEF: [], MID: [], FWD: [] };
@@ -53,7 +59,11 @@
     {#each ["FWD", "MID", "DEF", "GK"] as position (position)}
       <div class="flex flex-wrap items-center justify-around gap-2">
         {#each rows[position] as player, i (i + position)}
-          <PlayerSpot {player} isCaptain={isCaptain(player)} />
+          <PlayerSpot
+            {player}
+            isCaptain={isCaptain(player)}
+            onclick={(p) => onpickplayer?.(p, position)}
+          />
         {/each}
       </div>
     {/each}
