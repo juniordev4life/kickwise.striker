@@ -27,3 +27,17 @@ export function listPlayers(filters = {}) {
   const qs = params.toString();
   return apiFetch(`/api/v1/players${qs ? `?${qs}` : ""}`);
 }
+
+/**
+ * Fetch a single player by id. Includes Firestore stammdaten + a 30-day
+ * market-value time series from BigQuery.
+ *
+ * @param {string} playerId
+ * @returns {Promise<{ player: object, marketValueHistory: object[] }>}
+ *
+ * @example
+ *   const data = await getPlayerById("8329");
+ */
+export function getPlayerById(playerId) {
+  return apiFetch(`/api/v1/players/${encodeURIComponent(playerId)}`);
+}

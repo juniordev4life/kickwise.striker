@@ -31,7 +31,7 @@
   });
 </script>
 
-<tr class="border-b border-slate-100 hover:bg-slate-50">
+<tr class="cursor-pointer border-b border-slate-100 hover:bg-slate-50" onclick={() => (window.location.href = `/players/${player.playerId}`)}>
   <td class="px-3 py-2">
     {#if imgSrc}
       <img src={imgSrc} alt="" width="36" height="36" class="rounded-full bg-slate-200 object-cover" loading="lazy" />
@@ -42,7 +42,9 @@
     {/if}
   </td>
   <td class="px-3 py-2">
-    <div class="font-medium text-slate-900">{player.name}</div>
+    <a href="/players/{player.playerId}" class="font-medium text-slate-900 hover:text-[var(--color-pitch-dark)]">
+      {player.name}
+    </a>
     <div class="text-xs text-slate-500">{player.teamName ?? "—"}</div>
   </td>
   <td class="px-3 py-2 text-center">
