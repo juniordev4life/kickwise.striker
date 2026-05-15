@@ -36,11 +36,12 @@
 
   const barHeight = $derived(Math.max(matchday.isUpcoming ? 0 : 6, pointsScale * 180));
 
-  // Build the ⚽ / 🅰 icon stack: goals first (bottom of bar), then assists
+  // Build the icon stack: goals first (bottom of bar), then assists (above)
+  // ⚽ for goals, 👟 (sneaker) for assists.
   const iconStack = $derived.by(() => {
     const items = [];
     for (let i = 0; i < matchday.goals; i++) items.push({ type: "goal", char: "⚽" });
-    for (let i = 0; i < matchday.assists; i++) items.push({ type: "assist", char: "A" });
+    for (let i = 0; i < matchday.assists; i++) items.push({ type: "assist", char: "👟" });
     return items;
   });
 </script>
@@ -86,17 +87,13 @@
       ></div>
     {:else}
       <div
-        class="flex w-full flex-col-reverse items-center gap-[2px] rounded-sm pt-1"
+        class="flex w-full flex-col-reverse items-center gap-[5px] rounded-sm px-1 pb-1.5 pt-1"
         style="height: {barHeight}px; background-color: {barColor};"
         title="Spieltag {matchday.matchday} · {score} · {matchday.points ?? 0} Punkte"
       >
         {#each iconStack as icon, idx (idx)}
-          <span class="text-[11px] leading-none">
-            {#if icon.type === "goal"}
-              ⚽
-            {:else}
-              <span class="rounded-full bg-white/95 px-1 py-[1px] text-[9px] font-bold text-emerald-700">A</span>
-            {/if}
+          <span class="text-[12px] leading-none">
+            {icon.char}
           </span>
         {/each}
       </div>
