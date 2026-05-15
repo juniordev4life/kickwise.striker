@@ -14,6 +14,7 @@
     lineup = [],
     captain = null,
     formation = "4-4-2",
+    ownedPlayerIds = null,
     onpickplayer
   } = $props();
 
@@ -51,6 +52,12 @@
   function isCaptain(player) {
     return player && captainId && String(player.playerId) === captainId;
   }
+
+  function notOwned(player) {
+    return Boolean(
+      player && ownedPlayerIds && !ownedPlayerIds.has(String(player.playerId))
+    );
+  }
 </script>
 
 <div class="relative overflow-hidden rounded-2xl bg-emerald-700 p-4 shadow-lg">
@@ -62,6 +69,7 @@
           <PlayerSpot
             {player}
             isCaptain={isCaptain(player)}
+            notOwned={notOwned(player)}
             onclick={(p) => onpickplayer?.(p, position)}
           />
         {/each}
