@@ -1,7 +1,6 @@
 <script>
-  import { onMount } from "svelte";
   import { page } from "$app/state";
-  import { getPlayerById } from "$services/players.services.js";
+  import { getPlayerById, getPlayerPerformance } from "$services/players.services.js";
   import PointsHistoryChart from "$components/players/PointsHistoryChart.svelte";
   import MarketValueChart from "$components/players/MarketValueChart.svelte";
   import Spinner from "$components/common/Spinner.svelte";
@@ -11,6 +10,7 @@
 
   let player = $state(null);
   let marketValueHistory = $state([]);
+  let performance = $state(null);
   let loading = $state(true);
   let error = $state(null);
 
@@ -22,9 +22,13 @@
     loading = true;
     error = null;
     try {
-      const data = await getPlayerById(id);
-      player = data.player;
-      marketValueHistory = data.marketValueHistory ?? [];
+      const [detailRes, perfRes] = await Promise.all([
+        getPlayerById(id),
+        getPlayerPerformance(id).catch(() => null)
+      ]);
+      player = detailRes.player;
+      marketValueHistory = detailRes.marketValueHistory ?? [];
+      performance = perfRes;
     } catch (err) {
       error = err;
     } finally {
@@ -179,7 +183,7 @@
     <!-- Points history chart -->
     <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <h2 class="mb-3 text-base font-semibold text-slate-900">Punkte pro Spieltag</h2>
-      <PointsHistoryChart history={player.pointsHistory ?? []} />
+      <PointsHistoryChart {performance} />
     </section>
 
     <!-- Market value chart -->

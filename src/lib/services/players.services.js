@@ -41,3 +41,17 @@ export function listPlayers(filters = {}) {
 export function getPlayerById(playerId) {
   return apiFetch(`/api/v1/players/${encodeURIComponent(playerId)}`);
 }
+
+/**
+ * Multi-season per-matchday performance for a player. Includes opponent,
+ * score, minutes, goals, assists, etc.
+ *
+ * @param {string} playerId
+ * @returns {Promise<{ seasons: Array<object> }>}
+ *
+ * @example
+ *   const { seasons } = await getPlayerPerformance("7226");
+ */
+export function getPlayerPerformance(playerId) {
+  return apiFetch(`/api/v1/players/${encodeURIComponent(playerId)}/performance`);
+}
