@@ -2,6 +2,7 @@
 import "../app.css";
 import { goto } from "$app/navigation";
 import { page } from "$app/state";
+import BottomNav from "$components/layout/BottomNav.svelte";
 import Spinner from "$components/common/Spinner.svelte";
 import TopNav from "$components/layout/TopNav.svelte";
 import { authStore } from "$stores/auth.stores.svelte.js";
@@ -46,13 +47,18 @@ function toggleTheme() {
 
 {#if !isPublic}
   <TopNav onToggleTheme={toggleTheme} />
-  <main class="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+  <main
+    class="mx-auto max-w-6xl px-4 pb-24 pt-4 sm:px-6 sm:pt-6 md:pb-10"
+  >
     {#if authStore.isLoading}
       <Spinner label="Lade Session …" />
     {:else}
       {@render children?.()}
     {/if}
   </main>
+  {#if authStore.isAuthenticated}
+    <BottomNav />
+  {/if}
 {:else if authStore.isLoading}
   <div class="flex min-h-screen items-center justify-center">
     <Spinner label="Lade Session …" />
