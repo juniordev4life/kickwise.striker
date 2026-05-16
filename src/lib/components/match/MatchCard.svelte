@@ -44,6 +44,9 @@ function fmtPct(v) {
         <span class="text-sm font-medium text-slate-900">
           {match.home_team_name ?? match.home_team_id}
         </span>
+        {#if match.home_team_rank}
+          <span class="text-xs font-mono text-slate-400 tabular-nums">({match.home_team_rank})</span>
+        {/if}
       </div>
 
       <div class="flex w-16 items-center justify-center font-mono text-base font-semibold">
@@ -55,6 +58,9 @@ function fmtPct(v) {
       </div>
 
       <div class="flex flex-1 items-center justify-end gap-2">
+        {#if match.away_team_rank}
+          <span class="text-xs font-mono text-slate-400 tabular-nums">({match.away_team_rank})</span>
+        {/if}
         <span class="text-sm font-medium text-slate-900">
           {match.away_team_name ?? match.away_team_id}
         </span>
