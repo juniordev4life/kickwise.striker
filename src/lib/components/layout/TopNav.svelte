@@ -7,6 +7,7 @@ import { authStore } from "$stores/auth.stores.svelte.js";
 let { onToggleTheme } = $props();
 
 const navItems = [
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/matchday", label: "Spieltag" },
   { href: "/table", label: "Tabelle" },
   { href: "/league", label: "Liga" },
@@ -24,9 +25,9 @@ const navItems = [
  */
 function isActive(href) {
   const path = page.url.pathname;
-  return href === "/matchday"
-    ? path === "/matchday" || path.startsWith("/matchday/")
-    : path.startsWith(href);
+  if (href === "/dashboard") return path === "/dashboard" || path === "/";
+  if (href === "/matchday") return path === "/matchday" || path.startsWith("/matchday/");
+  return path.startsWith(href);
 }
 
 async function handleLogout() {
@@ -39,7 +40,7 @@ async function handleLogout() {
   class="sticky top-0 z-40 border-b border-edge bg-canvas/80 backdrop-blur-md backdrop-saturate-150"
 >
   <nav class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-    <a href="/matchday" class="flex shrink-0 items-center gap-2.5 text-ink">
+    <a href="/dashboard" class="flex shrink-0 items-center gap-2.5 text-ink">
       <KickwiseLogo variant="mark" class="h-9 w-9" />
       <span class="font-display text-lg font-bold tracking-tight">kickwise</span>
     </a>

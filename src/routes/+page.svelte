@@ -5,7 +5,7 @@ import { authStore } from "$stores/auth.stores.svelte.js";
 $effect(() => {
   if (authStore.isLoading) return;
   if (authStore.isAuthenticated) {
-    goto("/matchday");
+    goto("/dashboard");
   } else {
     goto("/login");
   }
