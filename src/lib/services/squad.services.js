@@ -12,6 +12,15 @@ export function getMySquad(leagueId) {
 }
 
 /**
+ * Fetch the user's current Kickbase budget for a league. Returns the
+ * raw payload (Kickbase doesn't document the field names — we pluck
+ * the first finite numeric field downstream).
+ */
+export function getMyBudget(leagueId) {
+  return apiFetch(`/api/v1/squad/${encodeURIComponent(leagueId)}/budget`);
+}
+
+/**
  * Fetch the engine-optimized starting XI + captain for the user's squad in
  * a given league, optionally for a specific matchday and formation.
  *

@@ -27,6 +27,17 @@
     return null;
   });
 
+  // Kickbase S11 scale: 1 = Sicher, 5 = Ausgeschlossen.
+  const s11Info = $derived.by(() => {
+    const prob = Number(player?.startingProbability);
+    if (!Number.isFinite(prob)) return null;
+    if (prob <= 1) return { color: "bg-blue-500", icon: "★", label: "Sicher" };
+    if (prob <= 2) return { color: "bg-emerald-500", icon: "✓", label: "Erwartet" };
+    if (prob <= 3) return { color: "bg-amber-500", icon: "?", label: "Unsicher" };
+    if (prob <= 4) return { color: "bg-orange-500", icon: "!", label: "Unwahrscheinlich" };
+    return { color: "bg-slate-700", icon: "✕", label: "Ausgeschlossen" };
+  });
+
   const shortName = $derived(player?.name ? shortify(player.name) : "");
 
   function shortify(name) {
@@ -65,7 +76,14 @@
         </div>
       {/if}
 
-      {#if statusInfo}
+      {#if s11Info}
+        <div
+          class="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full text-[10px] font-bold text-white shadow {s11Info.color}"
+          title="S11: {s11Info.label}"
+        >
+          {s11Info.icon}
+        </div>
+      {:else if statusInfo}
         <div
           class="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full text-[10px] font-bold text-white shadow {statusInfo.color}"
           title={statusInfo.label}

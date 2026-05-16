@@ -8,6 +8,7 @@ import PlayerPickerModal from "$components/squad/PlayerPickerModal.svelte";
 import { getMyLeagues } from "$services/league.services.js";
 import {
   getBudgetLineup,
+  getMyBudget,
   getMySquad,
   getOptimizedLineup,
   submitLineup
@@ -142,6 +143,18 @@ async function loadSquad(leagueId) {
     error = err;
   } finally {
     loading = false;
+  }
+  // Best-effort: pull the user's real Kickbase budget so the optimizer
+  // matches what they see in the Kickbase app.
+  try {
+    const raw = await getMyBudget(leagueId);
+    const candidates = [raw?.b, raw?.budget, raw?.bgt, raw?.value];
+    const value = candidates.find((v) => Number.isFinite(v) && v > 0);
+    if (Number.isFinite(value)) {
+      budgetInputM = Math.round(value / 1_000_000);
+    }
+  } catch {
+    /* keep manual fallback */
   }
 }
 
