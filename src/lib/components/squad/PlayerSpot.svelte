@@ -59,20 +59,11 @@
         <img
           src={imgSrc}
           alt={player.name}
-          class="size-14 rounded-full border-2 bg-slate-100 object-cover shadow-sm {notOwned ? 'border-red-400 opacity-70 ring-2 ring-red-300' : 'border-white'}"
+          class="size-14 rounded-full border-2 border-white bg-slate-100 object-cover shadow-sm"
         />
       {:else}
-        <div class="flex size-14 items-center justify-center rounded-full border-2 bg-slate-200 text-sm font-semibold text-slate-500 shadow-sm {notOwned ? 'border-red-400 opacity-70 ring-2 ring-red-300' : 'border-white'}">
+        <div class="flex size-14 items-center justify-center rounded-full border-2 border-white bg-slate-200 text-sm font-semibold text-slate-500 shadow-sm">
           {player.name?.slice(0, 2) ?? "?"}
-        </div>
-      {/if}
-
-      {#if notOwned}
-        <div
-          class="absolute -bottom-1 -left-1 flex size-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow ring-2 ring-white"
-          title="Nicht in deinem Kader — du müsstest ihn erst in Kickbase kaufen"
-        >
-          €
         </div>
       {/if}
 
