@@ -14,6 +14,21 @@ const navItems = [
   { href: "/players", label: "Spieler" }
 ];
 
+/**
+ * Match active state against current path. `/matchday` is also active for
+ * `/matchday/[matchday]` so the nav doesn't flicker when drilling into a
+ * specific matchday detail view.
+ *
+ * @param {string} href
+ * @returns {boolean}
+ */
+function isActive(href) {
+  const path = page.url.pathname;
+  return href === "/matchday"
+    ? path === "/matchday" || path.startsWith("/matchday/")
+    : path.startsWith(href);
+}
+
 async function handleLogout() {
   await authStore.logout();
   await goto("/login");
@@ -23,26 +38,27 @@ async function handleLogout() {
 <header
   class="sticky top-0 z-40 border-b border-edge bg-canvas/80 backdrop-blur-md backdrop-saturate-150"
 >
-  <nav class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-    <a href="/" class="flex items-center gap-2.5 text-ink">
+  <nav class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+    <a href="/matchday" class="flex shrink-0 items-center gap-2.5 text-ink">
       <KickwiseLogo variant="mark" class="h-9 w-9" />
       <span class="font-display text-lg font-bold tracking-tight">kickwise</span>
     </a>
 
     {#if authStore.isAuthenticated}
-      <ul class="hidden gap-1 sm:flex">
+      <!-- Desktop nav (hidden on mobile, lives in BottomNav instead) -->
+      <ul class="hidden gap-1 md:flex">
         {#each navItems as item (item.href)}
-          {@const isActive = page.url.pathname.startsWith(item.href)}
+          {@const active = isActive(item.href)}
           <li>
             <a
               href={item.href}
               class="rounded-lg px-3 py-1.5 text-sm font-medium transition"
-              class:text-muted={!isActive}
-              class:hover:bg-panel={!isActive}
-              class:hover:text-ink={!isActive}
-              class:bg-primary={isActive}
-              class:text-white={isActive}
-              class:shadow-sm={isActive}
+              class:text-muted={!active}
+              class:hover:bg-panel={!active}
+              class:hover:text-ink={!active}
+              class:bg-primary={active}
+              class:text-white={active}
+              class:shadow-sm={active}
             >
               {item.label}
             </a>
@@ -54,7 +70,7 @@ async function handleLogout() {
         <button
           type="button"
           aria-label="Theme wechseln"
-          class="hidden h-9 w-9 items-center justify-center rounded-lg border border-edge bg-surface text-muted transition hover:text-ink sm:inline-flex"
+          class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-edge bg-surface text-muted transition hover:text-ink"
           onclick={onToggleTheme}
         >
           <svg
@@ -72,7 +88,7 @@ async function handleLogout() {
           </svg>
         </button>
 
-        <span class="hidden text-sm text-muted sm:inline">
+        <span class="hidden text-sm font-medium text-ink lg:inline">
           {authStore.currentUser?.profile?.name ?? ""}
         </span>
         <button
@@ -80,7 +96,19 @@ async function handleLogout() {
           class="rounded-lg border border-edge bg-surface px-3 py-1.5 text-sm font-medium text-ink transition hover:bg-panel"
           onclick={handleLogout}
         >
-          Abmelden
+          <span class="hidden sm:inline">Abmelden</span>
+          <svg
+            viewBox="0 0 24 24"
+            class="h-4 w-4 sm:hidden"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
+          </svg>
         </button>
       </div>
     {:else}
