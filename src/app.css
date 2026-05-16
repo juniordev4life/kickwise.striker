@@ -1,41 +1,212 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap");
 @import "tailwindcss";
 
-/* Kickwise Design Tokens */
+/* ==========================================================================
+   Kickwise Design Tokens
+   - Primitives are rgb tuples so /opacity modifiers work via Tailwind 4.
+   - Light is default; [data-theme="dark"] on <html> flips the scheme.
+   - Legacy --color-pitch* / --color-* tokens are kept and remapped so
+     existing components inherit the new palette without refactor.
+   ========================================================================== */
+
 :root {
-  /* Brand */
-  --color-pitch: #0f6e3a; /* satter Rasen-Grün-Ton */
-  --color-pitch-dark: #0a4a26;
-  --color-accent: #ffb800; /* Schiri-Gelb */
+  /* Theme-able primitives */
+  --canvas: 250 246 242;       /* #FAF6F2 beige */
+  --surface: 255 255 255;
+  --panel: 244 237 228;        /* #F4EDE4 */
+  --edge: 231 223 210;         /* #E7DFD2 */
+  --ink: 15 31 61;             /* #0F1F3D */
+  --muted: 107 120 146;        /* #6B7892 */
+  --primary: 17 58 120;        /* #113A78 deep blue */
+  --primary-strong: 12 42 90;
+  --accent: 42 158 223;        /* #2A9EDF medium blue */
+  --secondary: 35 198 209;     /* #23C6D1 cyan */
+  --gold: 201 166 75;          /* #C9A64B */
+  --success: 35 198 209;
+  --warning: 201 166 75;
+  --danger: 196 75 75;
 
-  /* Neutrale UI */
-  --color-bg: #f8fafc;
+  /* === Legacy tokens (back-compat, mapped to new palette) === */
+  --color-pitch: #113a78;
+  --color-pitch-dark: #0c2a5a;
+  --color-accent: #c9a64b;
+  --color-bg: #faf6f2;
   --color-surface: #ffffff;
-  --color-surface-2: #f1f5f9;
-  --color-border: #e2e8f0;
-  --color-text: #0f172a;
-  --color-text-muted: #64748b;
+  --color-surface-2: #f4ede4;
+  --color-border: #e7dfd2;
+  --color-text: #0f1f3d;
+  --color-text-muted: #6b7892;
+  --color-win: #23c6d1;
+  --color-loss: #c44b4b;
+  --color-draw: #6b7892;
 
-  /* Signal */
-  --color-win: #15803d;
-  --color-loss: #b91c1c;
-  --color-draw: #6b7280;
-
-  /* Typo */
+  /* Typography */
   --font-sans:
     "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
     Arial, sans-serif;
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
 }
 
+[data-theme="dark"] {
+  --canvas: 7 18 38;
+  --surface: 14 32 64;
+  --panel: 22 46 86;
+  --edge: 31 61 110;
+  --ink: 244 237 228;
+  --muted: 159 178 207;
+  --primary: 42 158 223;
+  --primary-strong: 17 58 120;
+  --accent: 35 198 209;
+  --secondary: 42 158 223;
+  --gold: 220 188 102;
+  --success: 35 198 209;
+  --warning: 220 188 102;
+  --danger: 232 130 130;
+
+  --color-pitch: #2a9edf;
+  --color-pitch-dark: #113a78;
+  --color-bg: #07122b;
+  --color-surface: #0f2347;
+  --color-surface-2: #16305a;
+  --color-border: #1f3d6e;
+  --color-text: #f4ede4;
+  --color-text-muted: #9fb2cf;
+}
+
+/* ==========================================================================
+   Tailwind 4 theme — exposes tokens as utility classes
+   (bg-primary, text-ink, font-display, etc.)
+   ========================================================================== */
+@theme {
+  /* Brand colors (fixed, do not change with theme) */
+  --color-kw-deep: #113a78;
+  --color-kw-blue: #2a9edf;
+  --color-kw-cyan: #23c6d1;
+  --color-kw-gold: #c9a64b;
+  --color-kw-beige: #faf6f2;
+
+  /* Semantic tokens (theme-aware) */
+  --color-canvas: rgb(var(--canvas));
+  --color-surface: rgb(var(--surface));
+  --color-panel: rgb(var(--panel));
+  --color-edge: rgb(var(--edge));
+  --color-ink: rgb(var(--ink));
+  --color-muted: rgb(var(--muted));
+  --color-primary: rgb(var(--primary));
+  --color-primary-strong: rgb(var(--primary-strong));
+  --color-accent: rgb(var(--accent));
+  --color-secondary: rgb(var(--secondary));
+  --color-gold: rgb(var(--gold));
+  --color-success: rgb(var(--success));
+  --color-warning: rgb(var(--warning));
+  --color-danger: rgb(var(--danger));
+
+  /* Typography */
+  --font-sans:
+    "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+
+  /* Shadows */
+  --shadow-card: 0 1px 2px rgba(15, 31, 61, 0.04), 0 8px 24px rgba(15, 31, 61, 0.06);
+  --shadow-lift: 0 4px 12px rgba(15, 31, 61, 0.08), 0 20px 40px rgba(15, 31, 61, 0.1);
+  --shadow-glow: 0 8px 32px rgba(42, 158, 223, 0.35);
+}
+
+/* ==========================================================================
+   Globals
+   ========================================================================== */
 html,
 body {
   font-family: var(--font-sans);
-  background-color: var(--color-bg);
-  color: var(--color-text);
+  background-color: rgb(var(--canvas));
+  color: rgb(var(--ink));
+  transition:
+    background-color 240ms ease,
+    color 240ms ease;
 }
 
-/* Focus ring used across all focusable elements */
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
 :focus-visible {
-  outline: 2px solid var(--color-pitch);
+  outline: 2px solid rgb(var(--accent));
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* ==========================================================================
+   Brand utilities
+   ========================================================================== */
+
+/* Hero gradient — deep blue with cyan + gold radials */
+.hero-blue {
+  background:
+    radial-gradient(120% 60% at 100% 0%, rgba(35, 198, 209, 0.35), transparent 60%),
+    radial-gradient(80% 50% at 0% 100%, rgba(201, 166, 75, 0.18), transparent 60%),
+    linear-gradient(135deg, #113a78 0%, #0c2a5a 100%);
+}
+[data-theme="dark"] .hero-blue {
+  background:
+    radial-gradient(120% 60% at 100% 0%, rgba(35, 198, 209, 0.28), transparent 60%),
+    radial-gradient(80% 50% at 0% 100%, rgba(201, 166, 75, 0.14), transparent 60%),
+    linear-gradient(135deg, #112d57 0%, #06162c 100%);
+}
+
+/* Splash hero — full-bleed brand gradient */
+.splash-hero {
+  background:
+    radial-gradient(80% 60% at 50% 0%, rgba(35, 198, 209, 0.22), transparent 70%),
+    radial-gradient(60% 50% at 100% 100%, rgba(201, 166, 75, 0.15), transparent 70%),
+    linear-gradient(180deg, #113a78 0%, #0a2553 60%, #061a3d 100%);
+}
+
+/* Dot pattern overlay */
+.pattern-dots {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1.2px);
+  background-size: 16px 16px;
+}
+
+/* Live pulse */
+@keyframes kw-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.live-dot {
+  animation: kw-pulse 1.6s ease-in-out infinite;
+}
+
+/* Chip */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgb(var(--panel));
+  color: rgb(var(--muted));
+  border: 1px solid rgb(var(--edge));
+}
+.chip-gold {
+  background: rgb(var(--gold) / 0.15);
+  color: rgb(var(--gold));
+  border-color: rgb(var(--gold) / 0.3);
+}
+.chip-cyan {
+  background: rgb(var(--secondary) / 0.15);
+  color: rgb(var(--secondary));
+  border-color: rgb(var(--secondary) / 0.3);
+}
+.chip-blue {
+  background: rgb(var(--accent) / 0.15);
+  color: rgb(var(--accent));
+  border-color: rgb(var(--accent) / 0.3);
 }

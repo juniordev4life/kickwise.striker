@@ -14,7 +14,7 @@ let {
 
 <label for={id} class="flex flex-col gap-1.5">
   {#if label}
-    <span class="text-sm font-medium text-slate-700">{label}</span>
+    <span class="text-xs font-semibold text-ink">{label}</span>
   {/if}
   <input
     {id}
@@ -23,11 +23,12 @@ let {
     {required}
     {autocomplete}
     bind:value
-    class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-[var(--color-pitch)] focus:outline-none focus:ring-1 focus:ring-[var(--color-pitch)]"
-    class:border-red-500={error}
+    class="rounded-xl border border-edge bg-surface px-3 py-2 text-sm text-ink shadow-sm transition placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+    class:border-danger={error}
+    class:focus:ring-danger={error}
     {...rest}
   />
   {#if error}
-    <span class="text-xs text-red-600">{error}</span>
+    <span class="text-xs text-danger">{error}</span>
   {/if}
 </label>
