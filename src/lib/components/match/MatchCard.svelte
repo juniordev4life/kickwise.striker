@@ -5,7 +5,6 @@ import { formatKickoffShort } from "$utils/date.utils.js";
 let { match } = $props();
 
 const isFinished = $derived(match.status === "finished");
-
 const prediction = $derived(match.prediction ?? null);
 
 const predictionPct = $derived.by(() => {
@@ -24,6 +23,10 @@ const predictionPct = $derived.by(() => {
   };
 });
 
+/**
+ * @param {number} v probability in [0, 1]
+ * @returns {string}
+ */
 function fmtPct(v) {
   return `${Math.round((v ?? 0) * 100)}%`;
 }
@@ -31,37 +34,45 @@ function fmtPct(v) {
 
 <a
   href="/matches/{match.match_id}"
-  class="flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-[var(--color-pitch)] hover:shadow-md"
+  class="group flex flex-col overflow-hidden rounded-2xl border border-edge bg-surface shadow-sm transition hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-[0_8px_24px_rgba(15,31,61,0.08)]"
 >
   <div class="flex items-stretch">
-    <div class="flex w-12 shrink-0 flex-col items-center justify-center bg-slate-50 text-xs font-medium text-slate-500">
+    <div
+      class="flex w-14 shrink-0 flex-col items-center justify-center bg-panel text-[11px] font-semibold uppercase tracking-wider text-muted"
+    >
       {formatKickoffShort(match.kickoff_at)}
     </div>
 
-    <div class="flex flex-1 items-center gap-3 px-3 py-2.5">
+    <div class="flex flex-1 items-center gap-3 px-3 py-3">
       <div class="flex flex-1 items-center gap-2">
         <TeamLogo src={match.home_logo_url} alt={match.home_team_short ?? match.home_team_name} />
-        <span class="text-sm font-medium text-slate-900">
+        <span class="text-sm font-semibold text-ink">
           {match.home_team_name ?? match.home_team_id}
         </span>
         {#if match.home_team_rank}
-          <span class="text-xs font-mono text-slate-400 tabular-nums">({match.home_team_rank})</span>
+          <span class="font-mono text-[11px] tabular-nums text-muted">
+            ({match.home_team_rank})
+          </span>
         {/if}
       </div>
 
-      <div class="flex w-16 items-center justify-center font-mono text-base font-semibold">
+      <div class="flex w-16 items-center justify-center">
         {#if isFinished}
-          <span class="tabular-nums">{match.home_score} : {match.away_score}</span>
+          <span class="font-display text-lg font-bold tabular-nums text-ink">
+            {match.home_score} : {match.away_score}
+          </span>
         {:else}
-          <span class="text-slate-400">vs.</span>
+          <span class="text-xs font-medium uppercase tracking-wider text-muted">vs.</span>
         {/if}
       </div>
 
       <div class="flex flex-1 items-center justify-end gap-2">
         {#if match.away_team_rank}
-          <span class="text-xs font-mono text-slate-400 tabular-nums">({match.away_team_rank})</span>
+          <span class="font-mono text-[11px] tabular-nums text-muted">
+            ({match.away_team_rank})
+          </span>
         {/if}
-        <span class="text-sm font-medium text-slate-900">
+        <span class="text-sm font-semibold text-ink">
           {match.away_team_name ?? match.away_team_id}
         </span>
         <TeamLogo src={match.away_logo_url} alt={match.away_team_short ?? match.away_team_name} />
@@ -70,14 +81,18 @@ function fmtPct(v) {
   </div>
 
   {#if predictionPct && !isFinished}
-    <div class="flex items-center gap-2 px-3 py-1.5 text-[10px] text-slate-500">
-      <span class="font-mono tabular-nums text-slate-700">{fmtPct(predictionPct.homeRaw)}</span>
-      <div class="flex h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200">
-        <div class="bg-[var(--color-pitch)]" style="width: {predictionPct.home}%"></div>
-        <div class="bg-slate-400" style="width: {predictionPct.draw}%"></div>
-        <div class="bg-amber-400" style="width: {predictionPct.away}%"></div>
+    <div class="flex items-center gap-2 border-t border-edge bg-panel/40 px-3 py-2">
+      <span class="font-mono text-[11px] font-semibold tabular-nums text-accent">
+        {fmtPct(predictionPct.homeRaw)}
+      </span>
+      <div class="flex h-1.5 flex-1 overflow-hidden rounded-full bg-edge">
+        <div class="bg-accent transition-all" style="width: {predictionPct.home}%"></div>
+        <div class="bg-muted/40" style="width: {predictionPct.draw}%"></div>
+        <div class="bg-gold transition-all" style="width: {predictionPct.away}%"></div>
       </div>
-      <span class="font-mono tabular-nums text-slate-700">{fmtPct(predictionPct.awayRaw)}</span>
+      <span class="font-mono text-[11px] font-semibold tabular-nums text-gold">
+        {fmtPct(predictionPct.awayRaw)}
+      </span>
     </div>
   {/if}
 </a>
