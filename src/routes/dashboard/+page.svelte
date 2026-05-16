@@ -50,17 +50,75 @@ const matchdayDelta = $derived.by(() => {
   return myMatchdayPoints - avgMatchdayPoints;
 });
 
-const trendMax = $derived(
-  Math.max(myMatchdayPoints ?? 0, avgMatchdayPoints ?? 0, seasonHigh ?? 0, 1)
+// === Step 2 derived metrics ===
+
+/**
+ * Leader of the league (rank 1). Used for "Abstand zum 1." gap displays.
+ */
+const leaderEntry = $derived.by(() => {
+  if (!rankingEntries.length) return null;
+  return rankingEntries.find((e) => e.rank === 1) ?? rankingEntries[0];
+});
+
+const gapToLeaderTotal = $derived.by(() => {
+  if (!leaderEntry || myEntry === null || myEntry === leaderEntry) return null;
+  const lead = Number(leaderEntry.totalPoints ?? 0);
+  const mine = Number(myEntry.totalPoints ?? 0);
+  if (!Number.isFinite(lead) || !Number.isFinite(mine)) return null;
+  return lead - mine;
+});
+
+const isLeader = $derived(myEntry !== null && leaderEntry !== null && myEntry === leaderEntry);
+
+/**
+ * Percentile within the league. 1 = top of the league, 100 = bottom.
+ * Used to surface "Top X%" badge next to rank.
+ */
+const topPercent = $derived.by(() => {
+  if (!myRank || !leagueSize) return null;
+  return Math.max(1, Math.round((myRank / leagueSize) * 100));
+});
+
+/**
+ * Delta of current matchday vs the user's own season-high. Negative = below
+ * their best, positive = new high or matching, exactly 0 = matching the
+ * personal best.
+ */
+const seasonHighDelta = $derived.by(() => {
+  if (myMatchdayPoints === null || seasonHigh === null) return null;
+  return myMatchdayPoints - seasonHigh;
+});
+
+const isNewSeasonHigh = $derived(
+  myMatchdayPoints !== null && seasonHigh !== null && myMatchdayPoints >= seasonHigh && myMatchdayPoints > 0
 );
 
 /**
- * @param {number | null | undefined} v
- * @returns {number}
+ * Sorted league members by matchdayPoints descending. Drives the "Liga-
+ * Spieltag-Verteilung" bar chart so users can eyeball where they rank
+ * within the league's current-MD point spread.
  */
-function pct(v) {
-  return Math.min(100, ((v ?? 0) / trendMax) * 100);
-}
+const matchdayDistribution = $derived.by(() => {
+  if (!rankingEntries.length) return [];
+  return [...rankingEntries]
+    .map((e) => ({
+      userId: e.userId,
+      name: e.name,
+      points: Number(e.matchdayPoints ?? 0),
+      isMe: e.userId === userId
+    }))
+    .sort((a, b) => b.points - a.points);
+});
+
+const matchdayDistributionMax = $derived(
+  matchdayDistribution.reduce((m, e) => Math.max(m, e.points), 0) || 1
+);
+
+const myMatchdayPosition = $derived.by(() => {
+  if (!matchdayDistribution.length || !userId) return null;
+  const idx = matchdayDistribution.findIndex((e) => e.userId === userId);
+  return idx >= 0 ? idx + 1 : null;
+});
 
 const captainPick = $derived(captainCandidates[0] ?? null);
 
@@ -267,9 +325,15 @@ onMount(loadDashboard);
           {/if}
         </div>
         <div class="mt-0.5 text-[10px] text-muted">
-          {avgMatchdayPoints !== null
-            ? `Liga-Ø ${fmtInt(avgMatchdayPoints)}`
-            : "Kein Ranking verfügbar"}
+          {#if isNewSeasonHigh}
+            <span class="font-semibold text-gold">🎉 Neues Saison-Hoch!</span>
+          {:else if seasonHighDelta !== null && seasonHigh}
+            {Math.abs(Math.round(seasonHighDelta))} Pkt. unter Hoch ({fmtInt(seasonHigh)})
+          {:else if avgMatchdayPoints !== null}
+            Liga-Ø {fmtInt(avgMatchdayPoints)}
+          {:else}
+            Kein Ranking verfügbar
+          {/if}
         </div>
       </article>
 
@@ -289,6 +353,18 @@ onMount(loadDashboard);
           <span class="font-display text-2xl font-bold text-ink md:text-3xl">
             {myRank ? `#${myRank}` : "—"}
           </span>
+          {#if topPercent !== null}
+            <span
+              class="rounded-md px-1.5 py-0.5 text-[10px] font-bold"
+              class:bg-gold={isLeader || topPercent <= 10}
+              class:text-white={isLeader || topPercent <= 10}
+              class:bg-secondary={!isLeader && topPercent > 10 && topPercent <= 33}
+              class:bg-panel={topPercent > 33}
+              class:text-muted={topPercent > 33}
+            >
+              {isLeader ? "👑 #1" : `Top ${topPercent}%`}
+            </span>
+          {/if}
         </div>
         <div class="mt-0.5 text-[10px] text-muted">
           {leagueSize ? `von ${leagueSize} Managern` : "Keine Liga gefunden"}
@@ -313,7 +389,18 @@ onMount(loadDashboard);
           </span>
         </div>
         <div class="mt-0.5 text-[10px] text-muted">
-          {myTotalPoints !== null ? `${fmtInt(myTotalPoints)} Saison-Punkte` : "—"}
+          {#if isLeader}
+            <span class="font-semibold text-gold">Du führst die Liga an 👑</span>
+          {:else if gapToLeaderTotal !== null}
+            −{fmtInt(gapToLeaderTotal)} zum 1.
+            {#if myTotalPoints !== null}
+              · {fmtInt(myTotalPoints)} Pkt.
+            {/if}
+          {:else if myTotalPoints !== null}
+            {fmtInt(myTotalPoints)} Saison-Punkte
+          {:else}
+            —
+          {/if}
         </div>
       </article>
 
@@ -342,69 +429,99 @@ onMount(loadDashboard);
       </article>
     </section>
 
-    <!-- Trend section (placeholder for line chart — wired with real data we have) -->
+    <!-- Liga-Spieltag-Verteilung: sorted bars for every league member -->
     <section class="rounded-3xl border border-edge bg-surface p-5 shadow-card md:p-6">
-      <header class="mb-4 flex items-center justify-between gap-4">
+      <header class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <div class="text-[10px] font-semibold uppercase tracking-wider text-muted">
-            Form &amp; Trend
+            Liga-Verteilung
           </div>
           <h2 class="font-display text-lg font-bold text-ink md:text-xl">
-            Du vs. Liga-Durchschnitt
+            Spieltag {matchday} · Wer hat wie viel?
           </h2>
         </div>
-        <span class="chip">Spieltag {matchday}</span>
+        {#if myMatchdayPosition !== null && matchdayDistribution.length > 1}
+          <span class="chip chip-cyan">
+            #{myMatchdayPosition} von {matchdayDistribution.length} am Spieltag
+          </span>
+        {/if}
       </header>
 
-      {#if rankingEntries.length === 0}
+      {#if matchdayDistribution.length === 0}
         <p class="rounded-xl bg-panel/40 p-4 text-center text-sm text-muted">
           Keine Ligadaten verfügbar — verbinde dich mit einer Kickbase-Liga, um deine
           Trends zu sehen.
         </p>
       {:else}
-        <!-- Current-matchday comparison bar -->
-        <div class="space-y-4">
-          <div>
-            <div class="mb-1.5 flex justify-between text-[11px]">
-              <span class="text-muted">Du</span>
-              <span class="font-semibold text-ink">{fmtInt(myMatchdayPoints)} Pkt.</span>
-            </div>
-            <div class="h-3 overflow-hidden rounded-full bg-panel">
-              <div
-                class="h-full rounded-full bg-gradient-to-r from-accent to-secondary transition-all"
-                style="width: {pct(myMatchdayPoints)}%"
-              ></div>
-            </div>
-          </div>
-          <div>
-            <div class="mb-1.5 flex justify-between text-[11px]">
-              <span class="text-muted">Liga-Durchschnitt</span>
-              <span class="font-semibold text-ink">{fmtInt(avgMatchdayPoints)} Pkt.</span>
-            </div>
-            <div class="h-3 overflow-hidden rounded-full bg-panel">
-              <div
-                class="h-full rounded-full bg-muted/50 transition-all"
-                style="width: {pct(avgMatchdayPoints)}%"
-              ></div>
-            </div>
-          </div>
-          {#if seasonHigh}
-            <div>
-              <div class="mb-1.5 flex justify-between text-[11px]">
-                <span class="text-muted">Dein Saison-Hoch</span>
-                <span class="font-semibold text-ink">{fmtInt(seasonHigh)} Pkt.</span>
-              </div>
-              <div class="h-3 overflow-hidden rounded-full bg-panel">
-                <div
-                  class="h-full rounded-full bg-gold/70 transition-all"
-                  style="width: {pct(seasonHigh)}%"
-                ></div>
-              </div>
-            </div>
-          {/if}
+        <!-- Mini-legend -->
+        <div class="mb-3 flex flex-wrap items-center gap-3 text-[10px] text-muted">
+          <span class="inline-flex items-center gap-1.5">
+            <span class="block h-2.5 w-4 rounded bg-gradient-to-r from-accent to-secondary"></span>
+            Du
+          </span>
+          <span class="inline-flex items-center gap-1.5">
+            <span class="block h-2.5 w-4 rounded bg-edge"></span>
+            Liga
+          </span>
+          <span class="inline-flex items-center gap-1.5">
+            <span class="block h-2.5 w-4 rounded bg-gold/70"></span>
+            Spieltags-Top
+          </span>
         </div>
+
+        <ol class="flex flex-col gap-1.5">
+          {#each matchdayDistribution as entry, i (entry.userId)}
+            {@const width = Math.max(2, (entry.points / matchdayDistributionMax) * 100)}
+            {@const isTop = i === 0 && entry.points > 0}
+            <li
+              class="grid grid-cols-[24px_minmax(0,1fr)_56px] items-center gap-2 rounded-lg px-2 py-1 transition"
+              class:bg-primary={entry.isMe}
+              class:text-white={entry.isMe}
+            >
+              <span
+                class="font-mono text-[10px] tabular-nums"
+                class:text-white={entry.isMe}
+                class:text-muted={!entry.isMe}
+              >
+                #{i + 1}
+              </span>
+              <div class="min-w-0">
+                <div
+                  class="truncate text-[11px] font-medium leading-tight"
+                  class:text-white={entry.isMe}
+                  class:text-ink={!entry.isMe}
+                >
+                  {entry.name || "Manager"}{entry.isMe ? " (Du)" : ""}
+                </div>
+                <div class="mt-1 h-2 overflow-hidden rounded-full"
+                  class:bg-white={entry.isMe}
+                  class:bg-opacity-20={entry.isMe}
+                  class:bg-panel={!entry.isMe}
+                  style={entry.isMe ? "background:rgba(255,255,255,0.18)" : ""}
+                >
+                  <div
+                    class="h-full rounded-full transition-all"
+                    class:bg-gradient-to-r={entry.isMe}
+                    class:from-secondary={entry.isMe}
+                    class:to-white={entry.isMe}
+                    class:bg-gold={isTop && !entry.isMe}
+                    style={!entry.isMe && !isTop ? `width: ${width}%; background: rgb(var(--muted) / 0.45)` : `width: ${width}%`}
+                  ></div>
+                </div>
+              </div>
+              <span
+                class="text-right font-mono text-xs font-semibold tabular-nums"
+                class:text-white={entry.isMe}
+                class:text-ink={!entry.isMe}
+              >
+                {fmtInt(entry.points)}
+              </span>
+            </li>
+          {/each}
+        </ol>
+
         <p class="mt-4 rounded-xl bg-panel/40 p-3 text-center text-[11px] text-muted">
-          Verlaufs-Chart über alle Spieltage folgt im nächsten Schritt — dafür braucht es einen
+          Verlaufs-Chart über alle Spieltage folgt in Schritt 3 — dafür braucht es einen
           neuen Backend-Endpoint, der die historische Punktverteilung pro Spieltag liefert.
         </p>
       {/if}
