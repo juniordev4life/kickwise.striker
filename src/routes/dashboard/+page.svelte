@@ -3,9 +3,14 @@ import { onMount } from "svelte";
 import ErrorState from "$components/common/ErrorState.svelte";
 import KickwiseLogo from "$components/common/KickwiseLogo.svelte";
 import MatchCard from "$components/match/MatchCard.svelte";
+import MatchdayPointsChart from "$components/dashboard/MatchdayPointsChart.svelte";
 import Spinner from "$components/common/Spinner.svelte";
 import TeamLogo from "$components/common/TeamLogo.svelte";
-import { getLeagueRanking, getMyLeagues } from "$services/league.services.js";
+import {
+  getLeaguePointsHistory,
+  getLeagueRanking,
+  getMyLeagues
+} from "$services/league.services.js";
 import { getCurrentMatchday } from "$services/matchday.services.js";
 import { getCaptainCandidates } from "$services/squad.services.js";
 import { authStore } from "$stores/auth.stores.svelte.js";
@@ -17,6 +22,8 @@ let leagueId = $state(null);
 let leagueName = $state(null);
 let rankingEntries = $state([]);
 let captainCandidates = $state([]);
+let pointsHistory = $state(null);
+let loadingHistory = $state(false);
 let loading = $state(true);
 let error = $state(null);
 
@@ -216,6 +223,24 @@ async function loadDashboard() {
     error = err;
   } finally {
     loading = false;
+  }
+
+  // Fire-and-forget the (slower, multi-matchday) history fetch so the
+  // dashboard skeleton paints fast and the chart fills in afterwards.
+  if (leagueId) {
+    loadPointsHistory();
+  }
+}
+
+async function loadPointsHistory() {
+  if (!leagueId) return;
+  loadingHistory = true;
+  try {
+    pointsHistory = await getLeaguePointsHistory(leagueId);
+  } catch {
+    pointsHistory = null;
+  } finally {
+    loadingHistory = false;
   }
 }
 
@@ -427,6 +452,42 @@ onMount(loadDashboard);
           {captainPick ? captainPick.name : "Keine Empfehlung"}
         </div>
       </article>
+    </section>
+
+    <!-- Punkte-Verlauf: line chart over all matchdays -->
+    <section class="rounded-3xl border border-edge bg-surface p-5 shadow-card md:p-6">
+      <header class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div class="text-[10px] font-semibold uppercase tracking-wider text-muted">
+            Saison-Verlauf
+          </div>
+          <h2 class="font-display text-lg font-bold text-ink md:text-xl">
+            Punkte pro Spieltag · Du vs. Liga
+          </h2>
+        </div>
+        {#if pointsHistory?.matchdays?.length}
+          <span class="chip">Spieltag {pointsHistory.matchdays[0]}–{pointsHistory.matchdays[pointsHistory.matchdays.length - 1]}</span>
+        {/if}
+      </header>
+
+      {#if loadingHistory && !pointsHistory}
+        <div class="flex h-48 items-center justify-center">
+          <Spinner label="Lade Punkte-Verlauf …" />
+        </div>
+      {:else if pointsHistory}
+        <MatchdayPointsChart
+          matchdays={pointsHistory.matchdays}
+          leagueAverage={pointsHistory.leagueAverage}
+          users={pointsHistory.users}
+          myUserId={userId}
+          leaderUserId={pointsHistory.users[0]?.userId ?? null}
+          kickbaseHonorsDay={pointsHistory.kickbaseHonorsDay}
+        />
+      {:else}
+        <p class="rounded-xl bg-panel/40 p-4 text-center text-sm text-muted">
+          Verlauf konnte nicht geladen werden — du kannst die Seite neu laden.
+        </p>
+      {/if}
     </section>
 
     <!-- Liga-Spieltag-Verteilung: sorted bars for every league member -->
