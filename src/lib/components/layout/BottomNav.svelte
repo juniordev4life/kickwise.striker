@@ -10,19 +10,19 @@ import { page } from "$app/state";
 
 const items = [
   {
+    href: "/dashboard",
+    label: "Home",
+    icon: "M3 12L12 3l9 9M5 10v10h14V10"
+  },
+  {
     href: "/matchday",
     label: "Spieltag",
-    icon: "M3 12L12 3l9 9M5 10v10h14V10"
+    icon: "M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"
   },
   {
     href: "/table",
     label: "Tabelle",
     icon: "M3 6h18M3 12h18M3 18h18"
-  },
-  {
-    href: "/league",
-    label: "Liga",
-    icon: "M8 21h8M12 17v4M17 5h3v3a5 5 0 01-5 5h-1M7 5H4v3a5 5 0 005 5h1M7 3h10v6a5 5 0 01-10 0z"
   },
   {
     href: "/squad",
@@ -42,7 +42,9 @@ const items = [
  */
 function isActive(href) {
   const path = page.url.pathname;
-  return href === "/matchday" ? path === "/matchday" || path.startsWith("/matchday/") : path.startsWith(href);
+  if (href === "/dashboard") return path === "/dashboard" || path === "/";
+  if (href === "/matchday") return path === "/matchday" || path.startsWith("/matchday/");
+  return path.startsWith(href);
 }
 </script>
 

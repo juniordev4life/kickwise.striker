@@ -10,7 +10,7 @@ let errorMessage = $state("");
 
 $effect(() => {
   if (authStore.isAuthenticated) {
-    goto("/matchday");
+    goto("/dashboard");
   }
 });
 
@@ -20,7 +20,7 @@ async function handleSubmit(event) {
   errorMessage = "";
   try {
     await authStore.login(email, password);
-    await goto("/matchday");
+    await goto("/dashboard");
   } catch (err) {
     errorMessage =
       err?.status === 401
